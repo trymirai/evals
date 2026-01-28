@@ -21,11 +21,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["lalamo_eval_handlers*"]
+include = ["evals*"]
 namespaces = false
 
 [tool.setuptools.dynamic]
-version = { attr = "lalamo_eval_handlers.__version__" }
+version = { attr = "evals.__version__" }
 
 [tool.uv]
 package = true
