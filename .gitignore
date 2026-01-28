@@ -1,0 +1,36 @@
+.DS_Store
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Ruff
+.ruff_cache/
+
+# Virtual environments
+.venv
+
+# Pyright
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+.pyright/
+
+# IDE
+.idea/
+
+sync.bb
+.clj-kondo
+.lsp
+
+# Profiler
+memray-*.bin
+memray-*.html
+*.prof
+
+# temporary data
+tmp/
