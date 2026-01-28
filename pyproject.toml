@@ -1,0 +1,77 @@
+[project]
+name = "evals"
+description = "Extensible handler interfaces and implementations for evaluating LLMs on standard benchmarks (MMLU-Pro, GSM8K, etc.)"
+requires-python = ">=3.12, <4"
+dependencies = [
+    "pyarrow>=18.1.0",
+]
+readme = { file = "README.md", content-type = "text/markdown" }
+dynamic = ["version"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-xdist>=3.8.0",
+    "ruff==0.14.0",
+]
+
+[build-system]
+requires = ["setuptools>=65.5.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lalamo_eval_handlers*"]
+namespaces = false
+
+[tool.setuptools.dynamic]
+version = { attr = "lalamo_eval_handlers.__version__" }
+
+[tool.uv]
+package = true
+
+[tool.pytest.ini_options]
+addopts = ["--dist=loadgroup"]
+
+[tool.pyright]
+venv = "."
+venvPath = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 119
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "C408",
+    "C901",
+    "D",
+    "EM101",
+    "EM102",
+    "ERA001",
+    "FIX002",
+    "F722",
+    "FBT001",
+    "FBT002",
+    "N812",
+    "PD008",
+    "PGH003",
+    "PLC0415",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PLR2004",
+    "PT",
+    "PTH123",
+    "RET503",
+    "RET504",
+    "RUF005",
+    "S",
+    "SIM108",
+    "T20",
+    "TD003",
+    "TRY003",
+]
