@@ -1,45 +1,45 @@
 """
 Vendored from: https://github.com/TIGER-AI-Lab/MMLU-Pro
-Commit: main branch (7eca4cee303b85033bf371bb9f00fe9278d0e30d)
-License: MIT
+Commit: 7eca4cee303b85033bf371bb9f00fe9278d0e30d
+License: Apache License 2.0
 
-Official MMLU-Pro evaluation code for computing accuracy.
+CHANGES FROM ORIGINAL:
+- Wrapped script execution code in if __name__ == "__main__" block to make functions importable
 """
 
 import glob
+import sys
 import json
-import random
 import re
-from pathlib import Path
+import random
 
 
-def extract_answer(text: str, level: str) -> str | None:
-    if level == "l1":
+def extract_answer(text, level):
+    if level == 'l1':
         pattern = r"answer is \(?([A-J])\)?"
         match = re.search(pattern, text)
         if match:
             return match.group(1)
         else:
             return None
-    elif level == "l2":
+    elif level == 'l2':
         pattern = r"answer is \(?([A-J])\)?"
         match = re.search(pattern, text)
         if match:
             return match.group(1)
         else:
             return extract_again(text)
-    return None
 
 
-def extract_again(text: str) -> str | None:
-    match = re.search(r".*[aA]nswer:\s*([A-J])", text)
+def extract_again(text):
+    match = re.search(r'.*[aA]nswer:\s*([A-J])', text)
     if match:
         return match.group(1)
     else:
         return extract_final(text)
+    
 
-
-def extract_final(text: str) -> str | None:
+def extract_final(text):
     pattern = r"\b[A-J]\b(?!.*\b[A-J]\b)"
     match = re.search(pattern, text, re.DOTALL)
     if match:
@@ -48,33 +48,41 @@ def extract_final(text: str) -> str | None:
         return None
 
 
-def compute_accuracy_from_dir(directory: Path, level: str = "l2", seed: int = 12345) -> dict[str, dict]:
-    random.seed(seed)
-    results = {}
+if __name__ == "__main__":
+    # Original script logic wrapped to allow function imports
+    assert len(sys.argv) > 1, 'You need to pass the directory'
+    path = sys.argv[1]
+    random.seed(12345)
 
-    for file_path in directory.glob("*.json"):
-        category = file_path.stem
+    for name in glob.glob(path + '/*'):
+        print('Level 1 regex' + '==' * 20)
         succ, fail = 0, 0
-
-        with open(file_path) as f:
+        with open(name, 'r') as f:
             entries = json.load(f)
             for e in entries:
-                pred = extract_answer(e["model_outputs"], level)
+                pred = extract_answer(e['model_outputs'], 'l1')
                 if pred is None:
                     pred = random.choice(["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"])
-
-                if pred == e["answer"]:
+                # Remove the None cases
+                if pred == e['answer']:
                     succ += 1
                 else:
                     fail += 1
+        print(name, succ / (succ + fail))
 
-        total = succ + fail
-        accuracy = succ / total if total > 0 else 0.0
+        print('Level 2 regex' + '==' * 20)
+        succ, fail = 0, 0
+        with open(name, 'r') as f:
+            entries = json.load(f)
+            for e in entries:
+                pred = extract_answer(e['model_outputs'], 'l2')
+                if pred is None:
+                    pred = random.choice(["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"])
+                # Remove the None cases
+                if pred == e['answer']:
+                    succ += 1
+                else:
+                    fail += 1
+        print(name, succ / (succ + fail))
 
-        results[category] = {
-            "accuracy": accuracy,
-            "correct": succ,
-            "total": total,
-        }
-
-    return results
+        print()

@@ -1,3 +1,15 @@
-from .compute_accuracy import compute_accuracy_from_dir
+"""
+Vendored MMLU-Pro evaluation code.
 
-__all__ = ["compute_accuracy_from_dir"]
+Source: https://github.com/TIGER-AI-Lab/MMLU-Pro
+Commit: 7eca4cee303b85033bf371bb9f00fe9278d0e30d
+License: Apache License 2.0
+"""
+
+from .compute_accuracy import extract_answer, extract_again, extract_final
+
+__all__ = [
+    "extract_answer",
+    "extract_again",
+    "extract_final",
+]

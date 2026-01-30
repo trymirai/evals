@@ -1,6 +1,6 @@
 from .common import EvalHandler
 from .formats import BenchmarkMetrics, DatasetMetadata, InternalEvalRecord, PredictionRecord
-from .mmlu import MMLUProHandler
+from .mmlu_pro import MMLUProHandler
 
 __version__ = "0.1.0"
 

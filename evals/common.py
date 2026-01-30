@@ -24,16 +24,16 @@ class EvalHandler(ABC):
         ground_truth: list[InternalEvalRecord],
         output_dir: Path,
     ) -> Path:
-        """Convert our internal format to what the official eval script expects. """
+        """Convert our internal format to what the eval script expects. """
         ...
 
     @abstractmethod
-    def run_official_benchmark(
+    def run_benchmark(
         self,
         prepared_data_path: Path,
         eval_name: str,
         model_name: str,
         split: str,
     ) -> BenchmarkMetrics:
-        """ Run the official evaluation code. """
+        """ Run the evaluation code. """
         ...
