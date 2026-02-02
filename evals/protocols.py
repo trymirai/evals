@@ -2,19 +2,34 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from .formats import BenchmarkMetrics, InternalEvalRecord, PredictionRecord
+from .types import (
+    BenchmarkMetrics,
+    EvalPrompt,
+    InternalEvalRecord,
+    PredictionRecord,
+)
 
 
 @dataclass(frozen=True)
-class EvalHandler(ABC):
+class EvalAdapter(ABC):
     @abstractmethod
     def convert_record(self, record: dict) -> InternalEvalRecord:
-        """Convert single foreign format record to internal format. """
+        """Convert single HuggingFace record to internal format."""
         ...
 
     @abstractmethod
     def convert_split(self, parquet_path: Path) -> list[InternalEvalRecord]:
-        """Convert entire split file to internal format. """
+        """Convert entire HuggingFace split to internal format."""
+        ...
+
+    @abstractmethod
+    def format_prompts(
+        self,
+        records: list[InternalEvalRecord],
+        few_shot_source: list[InternalEvalRecord] | None = None,
+        num_few_shot: int = 5,
+    ) -> list[EvalPrompt]:
+        """Generate inference prompts from internal records."""
         ...
 
     @abstractmethod
@@ -24,7 +39,7 @@ class EvalHandler(ABC):
         ground_truth: list[InternalEvalRecord],
         output_dir: Path,
     ) -> Path:
-        """Convert our internal format to what the eval script expects. """
+        """Convert predictions to format expected by official eval code."""
         ...
 
     @abstractmethod
@@ -35,5 +50,5 @@ class EvalHandler(ABC):
         model_name: str,
         split: str,
     ) -> BenchmarkMetrics:
-        """ Run the evaluation code. """
+        """Run official benchmark code and return metrics."""
         ...

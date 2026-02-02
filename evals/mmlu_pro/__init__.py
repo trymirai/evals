@@ -1,3 +1,3 @@
-from .handler import MMLUProHandler
+from .adapter import MMLUProAdapter
 
-__all__ = ["MMLUProHandler"]
+__all__ = ["MMLUProAdapter"]

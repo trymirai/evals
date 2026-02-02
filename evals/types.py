@@ -1,10 +1,9 @@
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
 class InternalEvalRecord:
-    """Universal internal format for eval dataset records."""
-
     id: str
     question: str
     answer: str
@@ -17,8 +16,6 @@ class InternalEvalRecord:
 
 @dataclass(frozen=True)
 class DatasetMetadata:
-    """Metadata about a converted eval dataset."""
-
     lalamo_version: str
     name: str
     repo: str
@@ -28,9 +25,28 @@ class DatasetMetadata:
 
 
 @dataclass(frozen=True)
-class PredictionRecord:
-    """Universal format for model predictions."""
+class PromptMessage:
+    role: str  # "system", "user", "assistant"
+    content: str
 
+
+@dataclass(frozen=True)
+class EvalPrompt:
+    id: str
+    messages: list[PromptMessage]
+    category: str | None = None
+    metadata: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class InferenceOutput:
+    id: str
+    response: str
+    chain_of_thought: str | None = None
+
+
+@dataclass(frozen=True)
+class PredictionRecord:
     id: str
     model_output: str
     extracted_answer: str | None = None
@@ -40,8 +56,6 @@ class PredictionRecord:
 
 @dataclass(frozen=True)
 class BenchmarkMetrics:
-    """Universal format for benchmark results."""
-
     eval_name: str
     model_name: str
     split: str

@@ -4,13 +4,19 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from ..common import EvalHandler
-from ..formats import BenchmarkMetrics, InternalEvalRecord, PredictionRecord
+from ..protocols import EvalAdapter
+from ..types import (
+    BenchmarkMetrics,
+    EvalPrompt,
+    InternalEvalRecord,
+    PredictionRecord,
+    PromptMessage,
+)
 from ..vendored.mmlu_pro import extract_answer
 
 
 @dataclass(frozen=True)
-class MMLUProHandler(EvalHandler):
+class MMLUProAdapter(EvalAdapter):
     def convert_record(self, record: dict) -> InternalEvalRecord:
         return InternalEvalRecord(
             id=str(record["question_id"]),
@@ -35,6 +41,70 @@ class MMLUProHandler(EvalHandler):
         num_rows = len(next(iter(records.values())))
         return [self.convert_record({key: records[key][i] for key in records}) for i in range(num_rows)]
 
+    def format_prompts(
+        self,
+        records: list[InternalEvalRecord],
+        few_shot_source: list[InternalEvalRecord] | None = None,
+        num_few_shot: int = 5,
+    ) -> list[EvalPrompt]:
+        from ..vendored.mmlu_pro.prompts import format_cot_example
+
+        prompts = []
+        for record in records:
+            system_prompt = self._load_system_prompt(record.category or "general")
+
+            few_shot = self._select_few_shot(record, few_shot_source, num_few_shot)
+
+            user_content = ""
+            for example in few_shot:
+                example_dict = self._to_vendored_format(example)
+                user_content += format_cot_example(example_dict, including_answer=True)
+
+            test_dict = self._to_vendored_format(record)
+            user_content += format_cot_example(test_dict, including_answer=False)
+
+            prompts.append(
+                EvalPrompt(
+                    id=record.id,
+                    messages=[
+                        PromptMessage(role="system", content=system_prompt),
+                        PromptMessage(role="user", content=user_content),
+                    ],
+                    category=record.category,
+                )
+            )
+
+        return prompts
+
+    def _load_system_prompt(self, category: str) -> str:
+        prompt_path = Path(__file__).parent.parent / "vendored/mmlu_pro/initial_prompt.txt"
+        with open(prompt_path) as f:
+            prompt = f.read()
+        return prompt.replace("{$}", category)
+
+    def _select_few_shot(
+        self,
+        test_record: InternalEvalRecord,
+        few_shot_source: list[InternalEvalRecord] | None,
+        num_few_shot: int,
+    ) -> list[InternalEvalRecord]:
+        if not few_shot_source or num_few_shot == 0:
+            return []
+
+        category = test_record.category
+        same_category = [r for r in few_shot_source if r.category == category]
+
+        return same_category[:num_few_shot]
+
+    def _to_vendored_format(self, record: InternalEvalRecord) -> dict:
+        return {
+            "question": record.question,
+            "options": record.options,
+            "answer": record.answer,
+            "cot_content": record.reasoning or "",
+            "category": record.category,
+        }
+
     def prepare_for_benchmark(
         self,
         predictions: list[PredictionRecord],
@@ -55,10 +125,12 @@ class MMLUProHandler(EvalHandler):
             if category not in by_category:
                 by_category[category] = []
 
-            by_category[category].append({
-                "model_outputs": pred.model_output,
-                "answer": gt.answer,
-            })
+            by_category[category].append(
+                {
+                    "model_outputs": pred.model_output,
+                    "answer": gt.answer,
+                }
+            )
 
         for category, entries in by_category.items():
             category_file = output_dir / f"{category}.json"
@@ -76,7 +148,6 @@ class MMLUProHandler(EvalHandler):
     ) -> BenchmarkMetrics:
         import random
 
-        # Use extraction logic (level 2 regex with fallbacks)
         random.seed(12345)
         results = {}
 
@@ -121,92 +192,3 @@ class MMLUProHandler(EvalHandler):
             incorrect=total_examples - total_correct,
             category_metrics=category_metrics,
         )
-
-    def evaluate_with_vllm(
-        self,
-        model_path: str,
-        ground_truth: list[InternalEvalRecord],
-        output_dir: Path,
-        ntrain: int = 5,
-        gpu_util: float = 0.8,
-        lora_path: str | None = None,
-    ) -> dict[str, dict]:
-        from ..vendored.mmlu_pro.evaluate_from_local import (
-            eval_cot,
-            load_mmlu_pro,
-            select_by_category,
-        )
-        import torch
-        import transformers
-        from vllm import LLM, SamplingParams  # type: ignore
-        from vllm.lora.request import LoRARequest  # type: ignore
-
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        llm = LLM(
-            model=model_path,
-            gpu_memory_utilization=gpu_util,
-            tensor_parallel_size=torch.cuda.device_count(),
-            max_model_len=4096,
-            trust_remote_code=True,
-            enable_lora=True if lora_path else False,
-        )
-        sampling_params = SamplingParams(temperature=0, max_tokens=2048, stop=["Question:"])
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-
-        lora_request = None
-        if lora_path:
-            lora_request = LoRARequest(lora_name="lora", lora_path=lora_path, lora_int_id=1)
-
-        model = (llm, sampling_params, lora_request)
-
-        # Load validation data for few-shot examples
-        _, full_val_df = load_mmlu_pro()
-
-        # Convert InternalEvalRecord to format expected by vendored code
-        test_data_by_category = {}
-        for record in ground_truth:
-            category = record.category or "other"
-            if category not in test_data_by_category:
-                test_data_by_category[category] = []
-
-            test_data_by_category[category].append(
-                {
-                    "question_id": record.id,
-                    "question": record.question,
-                    "options": record.options,
-                    "answer": record.answer,
-                    "answer_index": record.answer_index,
-                    "category": category,
-                    "cot_content": record.reasoning or "",
-                }
-            )
-
-        # Run evaluation for each category
-        results = {}
-        for category, test_df in sorted(test_data_by_category.items()):
-            val_df = select_by_category(full_val_df, category)
-            output_path = output_dir / f"{category}.json"
-
-            accu, corr, wrong = eval_cot(
-                subject=category,
-                model=model,
-                tokenizer=tokenizer,
-                val_df=val_df,
-                test_df=test_df,
-                output_path=str(output_path),
-                ntrain=ntrain,
-            )
-
-            results[category] = {"accu": accu, "corr": corr, "wrong": wrong}
-
-        # Compute overall statistics
-        total_corr = sum(r["corr"] for r in results.values())
-        total_wrong = sum(r["wrong"] for r in results.values())
-        total_accu = (
-            total_corr / (total_corr + total_wrong) if (total_corr + total_wrong) > 0 else 0.0
-        )
-
-        results["total"] = {"accu": total_accu, "corr": total_corr, "wrong": total_wrong}
-
-        return results
