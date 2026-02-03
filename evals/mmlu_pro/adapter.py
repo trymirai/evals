@@ -47,28 +47,37 @@ class MMLUProAdapter(EvalAdapter):
         few_shot_source: list[InternalEvalRecord] | None = None,
         num_few_shot: int = 5,
     ) -> list[EvalPrompt]:
+        """Generate MMLU-Pro prompts using vendored formatting logic.
+
+        Matches reference implementation: creates single prompt string with
+        initial_prompt + few-shot examples + test question.
+        """
         from ..vendored.mmlu_pro.prompts import format_cot_example
 
         prompts = []
         for record in records:
-            system_prompt = self._load_system_prompt(record.category or "general")
+            # Build full prompt as single string (matches reference implementation)
+            full_prompt = ""
 
+            # 1. Initial prompt with category
+            full_prompt += self._load_system_prompt(record.category or "general")
+            full_prompt += "\n"
+
+            # 2. Few-shot examples with answers
             few_shot = self._select_few_shot(record, few_shot_source, num_few_shot)
-
-            user_content = ""
             for example in few_shot:
                 example_dict = self._to_vendored_format(example)
-                user_content += format_cot_example(example_dict, including_answer=True)
+                full_prompt += format_cot_example(example_dict, including_answer=True)
 
+            # 3. Test question without answer
             test_dict = self._to_vendored_format(record)
-            user_content += format_cot_example(test_dict, including_answer=False)
+            full_prompt += format_cot_example(test_dict, including_answer=False)
 
             prompts.append(
                 EvalPrompt(
                     id=record.id,
                     messages=[
-                        PromptMessage(role="system", content=system_prompt),
-                        PromptMessage(role="user", content=user_content),
+                        PromptMessage(role="user", content=full_prompt),
                     ],
                     category=record.category,
                 )

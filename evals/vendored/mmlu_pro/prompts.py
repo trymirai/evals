@@ -1,4 +1,4 @@
-"t"Prompt formatting functions extracted from evaluate_from_local.py.
+"""Prompt formatting functions extracted from evaluate_from_local.py.
 
 This module contains only the prompt formatting logic without heavy dependencies
 like torch, vllm, etc. Use this for lightweight prompt generation.
