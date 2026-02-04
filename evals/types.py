@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 
@@ -24,9 +25,15 @@ class DatasetMetadata:
     total_examples: dict[str, int]
 
 
+class MessageRole(StrEnum):
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
 @dataclass(frozen=True)
 class PromptMessage:
-    role: str  # "system", "user", "assistant"
+    role: MessageRole
     content: str
 
 
