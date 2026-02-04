@@ -5,6 +5,7 @@ requires-python = ">=3.12, <4"
 dependencies = [
     "pyarrow>=18.1.0",
     "absl-py>=2.1.0",
+    "datasets>=3.2.0",
     "langdetect>=1.0.9",
     "nltk>=3.9.1",
     "immutabledict>=4.2.1",
