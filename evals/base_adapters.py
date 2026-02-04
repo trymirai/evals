@@ -47,6 +47,7 @@ class HFDatasetsAdapter(EvalAdapter):
     def download_split(
         cls,
         repo_id: str,
+        split: str,
         _temp_dir: Path,
     ) -> list[InternalEvalRecord]:
         dataset = load_dataset(repo_id, split=split)
