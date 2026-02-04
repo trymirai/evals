@@ -57,8 +57,8 @@ class IFEvalAdapter(HFDatasetsAdapter):
     def format_prompts(
         self,
         records: list[InternalEvalRecord],
-        _few_shot_source: list[InternalEvalRecord] | None = None,
-        _num_few_shot: int = 5,
+        few_shot_source: list[InternalEvalRecord] | None = None,  # noqa: ARG002
+        num_few_shot: int = 5,  # noqa: ARG002
     ) -> list[EvalPrompt]:
         return [
             EvalPrompt(
