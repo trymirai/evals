@@ -1,5 +1,6 @@
-from .protocols import EvalAdapter
-from .types import (
+from evals.mmlu_pro import MMLUProAdapter
+from evals.protocols import EvalAdapter
+from evals.types import (
     BenchmarkMetrics,
     DatasetMetadata,
     EvalPrompt,
@@ -8,18 +9,17 @@ from .types import (
     PredictionRecord,
     PromptMessage,
 )
-from .mmlu_pro import MMLUProAdapter
 
 __version__ = "0.2.0"
 
 __all__ = [
-    "EvalAdapter",
-    "MMLUProAdapter",
-    "InternalEvalRecord",
-    "DatasetMetadata",
-    "PredictionRecord",
     "BenchmarkMetrics",
-    "PromptMessage",
+    "DatasetMetadata",
+    "EvalAdapter",
     "EvalPrompt",
     "InferenceOutput",
+    "InternalEvalRecord",
+    "MMLUProAdapter",
+    "PredictionRecord",
+    "PromptMessage",
 ]

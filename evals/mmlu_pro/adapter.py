@@ -1,18 +1,20 @@
 import json
+import random
 from dataclasses import dataclass
 from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from ..protocols import EvalAdapter
-from ..types import (
+from evals.protocols import EvalAdapter
+from evals.types import (
     BenchmarkMetrics,
     EvalPrompt,
     InternalEvalRecord,
     PredictionRecord,
     PromptMessage,
 )
-from ..vendored.mmlu_pro import extract_answer
+from evals.vendored.mmlu_pro import extract_answer
+from evals.vendored.mmlu_pro.prompts import format_cot_example
 
 
 @dataclass(frozen=True)
@@ -47,29 +49,18 @@ class MMLUProAdapter(EvalAdapter):
         few_shot_source: list[InternalEvalRecord] | None = None,
         num_few_shot: int = 5,
     ) -> list[EvalPrompt]:
-        """Generate MMLU-Pro prompts using vendored formatting logic.
-
-        Matches reference implementation: creates single prompt string with
-        initial_prompt + few-shot examples + test question.
-        """
-        from ..vendored.mmlu_pro.prompts import format_cot_example
-
         prompts = []
         for record in records:
-            # Build full prompt as single string (matches reference implementation)
             full_prompt = ""
 
-            # 1. Initial prompt with category
             full_prompt += self._load_system_prompt(record.category or "general")
             full_prompt += "\n"
 
-            # 2. Few-shot examples with answers
             few_shot = self._select_few_shot(record, few_shot_source, num_few_shot)
             for example in few_shot:
                 example_dict = self._to_vendored_format(example)
                 full_prompt += format_cot_example(example_dict, including_answer=True)
 
-            # 3. Test question without answer
             test_dict = self._to_vendored_format(record)
             full_prompt += format_cot_example(test_dict, including_answer=False)
 
@@ -80,7 +71,7 @@ class MMLUProAdapter(EvalAdapter):
                         PromptMessage(role="user", content=full_prompt),
                     ],
                     category=record.category,
-                )
+                ),
             )
 
         return prompts
@@ -127,7 +118,7 @@ class MMLUProAdapter(EvalAdapter):
             if pred.id != gt.id:
                 raise ValueError(
                     f"ID mismatch at position: prediction.id={pred.id!r} != ground_truth.id={gt.id!r}. "
-                    "Predictions and ground truth must be in the same order with matching IDs."
+                    "Predictions and ground truth must be in the same order with matching IDs.",
                 )
 
             category = gt.category or "other"
@@ -138,7 +129,7 @@ class MMLUProAdapter(EvalAdapter):
                 {
                     "model_outputs": pred.model_output,
                     "answer": gt.answer,
-                }
+                },
             )
 
         for category, entries in by_category.items():
@@ -155,8 +146,6 @@ class MMLUProAdapter(EvalAdapter):
         model_name: str,
         split: str,
     ) -> BenchmarkMetrics:
-        import random
-
         random.seed(12345)
         results = {}
 
