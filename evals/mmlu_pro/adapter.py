@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
-from evals.protocols import EvalAdapter
+from evals.base_adapters import ParquetBasedAdapter
 from evals.types import (
     BenchmarkMetrics,
     EvalPrompt,
@@ -18,7 +18,7 @@ from evals.vendored.mmlu_pro.prompts import format_cot_example
 
 
 @dataclass(frozen=True)
-class MMLUProAdapter(EvalAdapter):
+class MMLUProAdapter(ParquetBasedAdapter):
     def convert_record(self, record: dict) -> InternalEvalRecord:
         return InternalEvalRecord(
             id=str(record["question_id"]),

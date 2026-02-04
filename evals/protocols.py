@@ -12,6 +12,17 @@ from evals.types import (
 
 @dataclass(frozen=True)
 class EvalAdapter(ABC):
+    @classmethod
+    @abstractmethod
+    def download_split(
+        cls,
+        repo_id: str,
+        split: str,
+        temp_dir: Path,
+    ) -> list[InternalEvalRecord]:
+        """Download and convert a dataset split."""
+        ...
+
     @abstractmethod
     def convert_record(self, record: dict) -> InternalEvalRecord:
         """Convert single HuggingFace record to internal format."""

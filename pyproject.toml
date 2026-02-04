@@ -4,6 +4,10 @@ description = "Extensible handler interfaces and implementations for evaluating 
 requires-python = ">=3.12, <4"
 dependencies = [
     "pyarrow>=18.1.0",
+    "absl-py>=2.1.0",
+    "langdetect>=1.0.9",
+    "nltk>=3.9.1",
+    "immutabledict>=4.2.1",
 ]
 readme = { file = "README.md", content-type = "text/markdown" }
 dynamic = ["version"]

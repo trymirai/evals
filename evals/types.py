@@ -7,7 +7,7 @@ from typing import Any
 class InternalEvalRecord:
     id: str
     question: str
-    answer: str
+    answer: str | None = None
     options: list[str] | None = None
     answer_index: int | None = None
     reasoning: str | None = None
