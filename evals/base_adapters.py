@@ -48,7 +48,7 @@ class HFDatasetsAdapter(EvalAdapter):
         cls,
         repo_id: str,
         split: str,
-        _temp_dir: Path,
+        temp_dir: Path,  # noqa: ARG003
     ) -> list[InternalEvalRecord]:
         dataset = load_dataset(repo_id, split=split)
 
