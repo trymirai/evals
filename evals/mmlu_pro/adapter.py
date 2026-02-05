@@ -1,5 +1,7 @@
 import json
 import random
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,7 +15,6 @@ from evals.types import (
     PredictionRecord,
     PromptMessage,
 )
-from evals.vendored.mmlu_pro import extract_answer
 from evals.vendored.mmlu_pro.prompts import format_cot_example
 
 
@@ -77,7 +78,7 @@ class MMLUProAdapter(ParquetBasedAdapter):
         return prompts
 
     def _load_system_prompt(self, category: str) -> str:
-        prompt_path = Path(__file__).parent.parent / "vendored/mmlu_pro/initial_prompt.txt"
+        prompt_path = Path(__file__).parent.parent / "vendored/mmlu_pro/cot_prompt_lib/initial_prompt.txt"
         with open(prompt_path) as f:
             prompt = f.read()
         return prompt.replace("{$}", category)
@@ -147,46 +148,84 @@ class MMLUProAdapter(ParquetBasedAdapter):
         split: str,
     ) -> BenchmarkMetrics:
         random.seed(12345)
-        results = {}
 
-        for file_path in prepared_data_path.glob("*.json"):
-            category = file_path.stem
-            succ, fail = 0, 0
+        vendored_dir = Path(__file__).parent.parent / "vendored/mmlu_pro"
 
-            with open(file_path) as f:
-                entries = json.load(f)
-                for e in entries:
-                    pred = extract_answer(e["model_outputs"], level="l2")
-                    if pred is None:
-                        pred = random.choice(["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"])
+        cmd = [
+            sys.executable,
+            str(vendored_dir / "compute_accuracy.py"),
+            str(prepared_data_path),
+        ]
 
-                    if pred == e["answer"]:
-                        succ += 1
-                    else:
-                        fail += 1
+        result = subprocess.run(
+            cmd,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
 
-            total = succ + fail
-            accuracy = succ / total if total > 0 else 0.0
+        if result.returncode != 0:
+            raise RuntimeError(f"MMLU-Pro evaluation failed:\n{result.stderr}")
 
-            results[category] = {
-                "accuracy": accuracy,
-                "correct": succ,
-                "total": total,
-            }
-
-        total_correct = sum(r["correct"] for r in results.values())
-        total_examples = sum(r["total"] for r in results.values())
-        overall_accuracy = total_correct / total_examples if total_examples > 0 else 0.0
-
-        category_metrics = {category: r["accuracy"] for category, r in results.items()}
+        metrics = self._parse_stdout(result.stdout, prepared_data_path)
 
         return BenchmarkMetrics(
             eval_name=eval_name,
             model_name=model_name,
             split=split,
-            overall_accuracy=overall_accuracy,
-            total_examples=total_examples,
-            correct=total_correct,
-            incorrect=total_examples - total_correct,
-            category_metrics=category_metrics,
+            overall_accuracy=metrics["overall_accuracy"],
+            total_examples=metrics["total_examples"],
+            correct=metrics["correct"],
+            incorrect=metrics["incorrect"],
+            category_metrics=metrics["category_metrics"],
         )
+
+    def _parse_stdout(self, stdout: str, prepared_data_path: Path) -> dict:
+        lines = stdout.strip().split("\n")
+
+        # Find Level 2 section
+        level2_start = None
+        for i, line in enumerate(lines):
+            if "Level 2 regex" in line:
+                level2_start = i + 1
+                break
+
+        if level2_start is None:
+            raise RuntimeError("Could not find Level 2 results in output")
+
+        # Parse: "path/to/category.json accuracy"
+        category_accuracies = {}
+        for line in lines[level2_start:]:
+            if not line.strip() or "Level" in line:
+                break
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                filepath = parts[0]
+                accuracy = float(parts[1])
+                category = Path(filepath).stem
+                category_accuracies[category] = accuracy
+
+        total_correct = 0
+        total_examples = 0
+        category_metrics = {}
+
+        for category, accuracy in category_accuracies.items():
+            json_path = prepared_data_path / f"{category}.json"
+            with open(json_path) as f:
+                entries = json.load(f)
+                count = len(entries)
+                correct = int(round(accuracy * count))
+
+                category_metrics[category] = accuracy
+                total_correct += correct
+                total_examples += count
+
+        overall_accuracy = total_correct / total_examples if total_examples > 0 else 0.0
+
+        return {
+            "overall_accuracy": overall_accuracy,
+            "total_examples": total_examples,
+            "correct": total_correct,
+            "incorrect": total_examples - total_correct,
+            "category_metrics": category_metrics,
+        }
