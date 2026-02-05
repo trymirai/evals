@@ -22,7 +22,6 @@ class DatasetMetadata:
     repo: str
     splits: tuple[str, ...]
     schema_version: str
-    split_counts: dict[str, int]  # per-split example counts
 
 
 class MessageRole(StrEnum):
