@@ -20,6 +20,18 @@ from evals.vendored.mmlu_pro.prompts import format_cot_example
 
 @dataclass(frozen=True)
 class MMLUProAdapter(ParquetBasedAdapter):
+    def get_inference_split(self) -> str:
+        """MMLU-Pro uses test split for inference."""
+        return "test"
+
+    def get_few_shot_split(self) -> str | None:
+        """MMLU-Pro uses validation split for few-shot examples."""
+        return "validation"
+
+    def get_benchmark_split(self) -> str:
+        """MMLU-Pro benchmarks against test split."""
+        return "test"
+
     def convert_record(self, record: dict) -> InternalEvalRecord:
         return InternalEvalRecord(
             id=str(record["question_id"]),
