@@ -12,12 +12,6 @@ Evaluation adapters for [lalamo](https://github.com/trymirai/lalamo) with vendor
 
 1. Create `evals/<benchmark_name>/adapter.py`
 2. Implement `EvalAdapter` protocol (see `evals/protocols.py`)
-3. Implement the 6 required methods:
-   - `download_split()` - fetch dataset from HuggingFace
-   - `convert_record()` / `convert_split()` - normalize to `InternalEvalRecord`
-   - `format_prompts()` - generate inference prompts
-   - `prepare_for_benchmark()` - convert predictions to official format
-   - `run_benchmark()` - execute vendored eval code, return metrics
-4. Vendor the official evaluation code in `evals/vendored/<benchmark_name>/`
+3. Vendor the official evaluation code in `evals/vendored/<benchmark_name>/`
 
 See `evals/ifeval/adapter.py` or `evals/mmlu_pro/adapter.py` for examples.
