@@ -68,8 +68,8 @@ class PredictionRecord:
 @dataclass(frozen=True)
 class InferenceConfig:
     temperature: float
-    max_tokens: int  # follows vLLM naming convention for max new tokens to generate (output only)
-    max_model_len: int  # follows vLLM naming convention for maximum total sequence length (input + output)
+    max_output_length: int
+    max_model_len: int  # maximum total sequence length (input + output) - follows vLLM naming
     top_p: float | None = None
     top_k: int | None = None
     stop_tokens: list[str] | None = None

@@ -36,7 +36,7 @@ class MMLUProAdapter(ParquetBasedAdapter):
     def get_inference_config(self) -> InferenceConfig:
         return InferenceConfig(
             temperature=0.0,
-            max_tokens=2048,
+            max_output_length=2048,
             max_model_len=4096,
             top_p=None,
             top_k=None,

@@ -48,7 +48,7 @@ class IFEvalAdapter(HFDatasetsAdapter):
         # but common practice is greedy decoding for instruction-following tasks.
         return InferenceConfig(
             temperature=0.0,
-            max_tokens=4096,
+            max_output_length=4096,
             max_model_len=8192,
             top_p=None,
             top_k=None,
