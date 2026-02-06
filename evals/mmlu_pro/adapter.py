@@ -23,12 +23,6 @@ from evals.vendored.mmlu_pro.prompts import format_cot_example
 class MMLUProAdapter(ParquetBasedAdapter):
     num_few_shot: int = 5
 
-    def get_inference_split(self) -> str:
-        return "test"
-
-    def get_few_shot_split(self) -> str | None:
-        return "validation"
-
     def get_benchmark_split(self) -> str:
         return "test"
 

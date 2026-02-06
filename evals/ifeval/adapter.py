@@ -34,12 +34,6 @@ def _ensure_nltk_data() -> None:
 
 @dataclass(frozen=True)
 class IFEvalAdapter(HFDatasetsAdapter):
-    def get_inference_split(self) -> str:
-        return "train"
-
-    def get_few_shot_split(self) -> str | None:
-        return None
-
     def get_benchmark_split(self) -> str:
         return "train"
 

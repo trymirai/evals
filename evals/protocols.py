@@ -35,16 +35,6 @@ class EvalAdapter(ABC):
         ...
 
     @abstractmethod
-    def get_inference_split(self) -> str:
-        """Return the split name to use for inference (e.g., 'test', 'train')."""
-        ...
-
-    @abstractmethod
-    def get_few_shot_split(self) -> str | None:
-        """Return the split name to use for few-shot examples, or None if not applicable."""
-        ...
-
-    @abstractmethod
     def get_benchmark_split(self) -> str:
         """Return the split name to use for benchmarking."""
         ...
