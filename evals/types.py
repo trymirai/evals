@@ -20,7 +20,7 @@ class DatasetMetadata:
     lalamo_version: str
     name: str
     repo: str
-    splits: tuple[str, ...]
+    splits: list[str]
     schema_version: str
 
 
