@@ -51,6 +51,9 @@ class InferenceOutput:
     id: str
     response: str
     chain_of_thought: str | None = None
+    question: str | None = None
+    answer: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

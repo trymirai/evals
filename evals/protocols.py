@@ -6,8 +6,8 @@ from evals.types import (
     BenchmarkMetrics,
     DatasetLoadConfig,
     EvalPrompt,
+    InferenceOutput,
     InternalEvalRecord,
-    PredictionRecord,
 )
 
 
@@ -49,21 +49,16 @@ class EvalAdapter(ABC):
         self,
         datasets: dict[str, list[InternalEvalRecord]],
     ) -> list[EvalPrompt]:
-        """Generate inference prompts from loaded datasets.
-
-        Args:
-            datasets: Dict mapping split names to their loaded records
-        """
+        """Generate inference prompts from loaded datasets. """
         ...
 
     @abstractmethod
     def prepare_for_benchmark(
         self,
-        predictions: list[PredictionRecord],
-        ground_truth: list[InternalEvalRecord],
+        predictions: list["InferenceOutput"],
         output_dir: Path,
     ) -> Path:
-        """Convert predictions to format expected by official eval code."""
+        """Convert predictions to format expected by official eval code. """
         ...
 
     @abstractmethod

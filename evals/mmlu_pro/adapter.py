@@ -12,8 +12,8 @@ from evals.types import (
     BenchmarkMetrics,
     DatasetLoadConfig,
     EvalPrompt,
+    InferenceOutput,
     InternalEvalRecord,
-    PredictionRecord,
     PromptMessage,
 )
 from evals.vendored.mmlu_pro.prompts import format_cot_example
@@ -126,28 +126,21 @@ class MMLUProAdapter(ParquetBasedAdapter):
 
     def prepare_for_benchmark(
         self,
-        predictions: list[PredictionRecord],
-        ground_truth: list[InternalEvalRecord],
+        predictions: list["InferenceOutput"],
         output_dir: Path,
     ) -> Path:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         by_category: dict[str, list[dict]] = {}
-        for pred, gt in zip(predictions, ground_truth, strict=True):
-            if pred.id != gt.id:
-                raise ValueError(
-                    f"ID mismatch at position: prediction.id={pred.id!r} != ground_truth.id={gt.id!r}. "
-                    "Predictions and ground truth must be in the same order with matching IDs.",
-                )
-
-            category = (gt.metadata.get("category") if gt.metadata else None) or "other"
+        for pred in predictions:
+            category = (pred.metadata.get("category") if pred.metadata else None) or "other"
             if category not in by_category:
                 by_category[category] = []
 
             by_category[category].append(
                 {
-                    "model_outputs": pred.model_output,
-                    "answer": gt.answer,
+                    "model_outputs": pred.response,
+                    "answer": pred.answer,
                 },
             )
 

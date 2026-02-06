@@ -13,9 +13,9 @@ from evals.types import (
     BenchmarkMetrics,
     DatasetLoadConfig,
     EvalPrompt,
+    InferenceOutput,
     InternalEvalRecord,
     MessageRole,
-    PredictionRecord,
     PromptMessage,
 )
 
@@ -80,8 +80,7 @@ class IFEvalAdapter(HFDatasetsAdapter):
 
     def prepare_for_benchmark(
         self,
-        predictions: list[PredictionRecord],
-        ground_truth: list[InternalEvalRecord],
+        predictions: list[InferenceOutput],
         output_dir: Path,
     ) -> Path:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -89,8 +88,8 @@ class IFEvalAdapter(HFDatasetsAdapter):
         # Create input_data.jsonl (original dataset format)
         input_data_path = output_dir / "input_data.jsonl"
         with open(input_data_path, "w") as f:
-            for gt in ground_truth:
-                metadata = json.loads(gt.metadata) if isinstance(gt.metadata, str) else gt.metadata
+            for pred in predictions:
+                metadata = json.loads(pred.metadata) if isinstance(pred.metadata, str) else pred.metadata
 
                 # Filter kwargs to remove null values (vendored code expects only non-null fields)
                 kwargs_list = json.loads(metadata["kwargs"])
@@ -99,8 +98,8 @@ class IFEvalAdapter(HFDatasetsAdapter):
                 ]
 
                 entry = {
-                    "key": int(gt.id),
-                    "prompt": gt.question,
+                    "key": int(pred.id),
+                    "prompt": pred.question,
                     "instruction_id_list": json.loads(metadata["instruction_id_list"]),
                     "kwargs": filtered_kwargs,
                 }
@@ -109,16 +108,10 @@ class IFEvalAdapter(HFDatasetsAdapter):
         # Create input_response_data.jsonl (prompt + model response)
         input_response_path = output_dir / "input_response_data.jsonl"
         with open(input_response_path, "w") as f:
-            for pred, gt in zip(predictions, ground_truth, strict=True):
-                if pred.id != gt.id:
-                    raise ValueError(
-                        f"ID mismatch: prediction.id={pred.id!r} != ground_truth.id={gt.id!r}. "
-                        "Predictions and ground truth must be in the same order with matching IDs.",
-                    )
-
+            for pred in predictions:
                 entry = {
-                    "prompt": gt.question,
-                    "response": pred.model_output,
+                    "prompt": pred.question,
+                    "response": pred.response,
                 }
                 f.write(json.dumps(entry) + "\n")
 
