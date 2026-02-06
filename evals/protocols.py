@@ -6,6 +6,7 @@ from evals.types import (
     BenchmarkMetrics,
     DatasetLoadConfig,
     EvalPrompt,
+    InferenceConfig,
     InferenceOutput,
     InternalEvalRecord,
 )
@@ -42,6 +43,11 @@ class EvalAdapter(ABC):
     @abstractmethod
     def get_loading_config(self, limit: int | None) -> list[DatasetLoadConfig]:
         """Return list of dataset loading configs."""
+        ...
+
+    @abstractmethod
+    def get_inference_config(self) -> InferenceConfig:
+        """Return inference parameters from reference implementation. """
         ...
 
     @abstractmethod

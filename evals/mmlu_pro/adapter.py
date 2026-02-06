@@ -12,6 +12,7 @@ from evals.types import (
     BenchmarkMetrics,
     DatasetLoadConfig,
     EvalPrompt,
+    InferenceConfig,
     InferenceOutput,
     InternalEvalRecord,
     PromptMessage,
@@ -31,6 +32,16 @@ class MMLUProAdapter(ParquetBasedAdapter):
             DatasetLoadConfig(split="test", limit=limit),
             DatasetLoadConfig(split="validation", limit=None),
         ]
+
+    def get_inference_config(self) -> InferenceConfig:
+        return InferenceConfig(
+            temperature=0.0,
+            max_tokens=2048,
+            max_model_len=4096,
+            top_p=None,
+            top_k=None,
+            stop_tokens=["Question:"],
+        )
 
     def convert_record(self, record: dict) -> InternalEvalRecord:
         return InternalEvalRecord(

@@ -13,6 +13,7 @@ from evals.types import (
     BenchmarkMetrics,
     DatasetLoadConfig,
     EvalPrompt,
+    InferenceConfig,
     InferenceOutput,
     InternalEvalRecord,
     MessageRole,
@@ -41,6 +42,18 @@ class IFEvalAdapter(HFDatasetsAdapter):
         return [
             DatasetLoadConfig(split="train", limit=limit),
         ]
+
+    def get_inference_config(self) -> InferenceConfig:
+        # The reference implementation doesn't specify generation params,
+        # but common practice is greedy decoding for instruction-following tasks.
+        return InferenceConfig(
+            temperature=0.0,
+            max_tokens=4096,
+            max_model_len=8192,
+            top_p=None,
+            top_k=None,
+            stop_tokens=None,
+        )
 
     def convert_record(self, record: dict) -> InternalEvalRecord:
         return InternalEvalRecord(
