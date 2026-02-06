@@ -8,11 +8,7 @@ class InternalEvalRecord:
     id: str
     question: str
     answer: str | None = None
-    options: list[str] | None = None
-    answer_index: int | None = None
-    reasoning: str | None = None
-    category: str | None = None
-    metadata: dict[str, str] | None = None
+    metadata: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
