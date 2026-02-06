@@ -11,6 +11,7 @@ import pyarrow.parquet as pq
 from evals.base_adapters import HFDatasetsAdapter
 from evals.types import (
     BenchmarkMetrics,
+    DatasetLoadConfig,
     EvalPrompt,
     InternalEvalRecord,
     MessageRole,
@@ -34,16 +35,18 @@ def _ensure_nltk_data() -> None:
 @dataclass(frozen=True)
 class IFEvalAdapter(HFDatasetsAdapter):
     def get_inference_split(self) -> str:
-        """IFEval uses train split for inference (named train, but it's the test set)."""
         return "train"
 
     def get_few_shot_split(self) -> str | None:
-        """IFEval doesn't use few-shot examples."""
         return None
 
     def get_benchmark_split(self) -> str:
-        """IFEval benchmarks against train split."""
         return "train"
+
+    def get_loading_config(self, limit: int | None) -> list[DatasetLoadConfig]:
+        return [
+            DatasetLoadConfig(split="train", limit=limit),
+        ]
 
     def convert_record(self, record: dict) -> InternalEvalRecord:
         return InternalEvalRecord(
@@ -68,10 +71,9 @@ class IFEvalAdapter(HFDatasetsAdapter):
 
     def format_prompts(
         self,
-        records: list[InternalEvalRecord],
-        few_shot_source: list[InternalEvalRecord] | None = None,  # noqa: ARG002
-        num_few_shot: int = 5,  # noqa: ARG002
+        datasets: dict[str, list[InternalEvalRecord]],
     ) -> list[EvalPrompt]:
+        records = datasets["train"]
         return [
             EvalPrompt(
                 id=record.id,

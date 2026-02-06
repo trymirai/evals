@@ -4,6 +4,7 @@ from pathlib import Path
 
 from evals.types import (
     BenchmarkMetrics,
+    DatasetLoadConfig,
     EvalPrompt,
     InternalEvalRecord,
     PredictionRecord,
@@ -49,13 +50,8 @@ class EvalAdapter(ABC):
         ...
 
     @abstractmethod
-    def get_loading_config(self, limit: int | None) -> list[dict]:
-        """Return list of dataset loading configs.
-
-        Each config is a dict with:
-        - "split": str - the split name to load
-        - "limit": int | None - row limit to apply (None for no limit)
-        """
+    def get_loading_config(self, limit: int | None) -> list[DatasetLoadConfig]:
+        """Return list of dataset loading configs."""
         ...
 
     @abstractmethod

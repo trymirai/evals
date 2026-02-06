@@ -20,6 +20,12 @@ class DatasetMetadata:
     schema_version: str
 
 
+@dataclass(frozen=True)
+class DatasetLoadConfig:
+    split: str
+    limit: int | None
+
+
 class MessageRole(StrEnum):
     SYSTEM = "system"
     USER = "user"

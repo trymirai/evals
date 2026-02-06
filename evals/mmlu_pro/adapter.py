@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 from evals.base_adapters import ParquetBasedAdapter
 from evals.types import (
     BenchmarkMetrics,
+    DatasetLoadConfig,
     EvalPrompt,
     InternalEvalRecord,
     PredictionRecord,
@@ -20,29 +21,34 @@ from evals.vendored.mmlu_pro.prompts import format_cot_example
 
 @dataclass(frozen=True)
 class MMLUProAdapter(ParquetBasedAdapter):
+    num_few_shot: int = 5
+
     def get_inference_split(self) -> str:
-        """MMLU-Pro uses test split for inference."""
         return "test"
 
     def get_few_shot_split(self) -> str | None:
-        """MMLU-Pro uses validation split for few-shot examples."""
         return "validation"
 
     def get_benchmark_split(self) -> str:
-        """MMLU-Pro benchmarks against test split."""
         return "test"
+
+    def get_loading_config(self, limit: int | None) -> list[DatasetLoadConfig]:
+        return [
+            DatasetLoadConfig(split="test", limit=limit),
+            DatasetLoadConfig(split="validation", limit=None),
+        ]
 
     def convert_record(self, record: dict) -> InternalEvalRecord:
         return InternalEvalRecord(
             id=str(record["question_id"]),
             question=record["question"],
             answer=record["answer"],
-            options=record["options"],
-            answer_index=record["answer_index"],
-            reasoning=record.get("cot_content"),
-            category=record.get("category"),
             metadata={
                 "src": record.get("src", ""),
+                "options": record["options"],
+                "answer_index": record["answer_index"],
+                "reasoning": record.get("cot_content"),
+                "category": record.get("category"),
             },
         )
 
@@ -58,18 +64,20 @@ class MMLUProAdapter(ParquetBasedAdapter):
 
     def format_prompts(
         self,
-        records: list[InternalEvalRecord],
-        few_shot_source: list[InternalEvalRecord] | None = None,
-        num_few_shot: int = 5,
+        datasets: dict[str, list[InternalEvalRecord]],
     ) -> list[EvalPrompt]:
+        records = datasets["test"]
+        few_shot_source = datasets.get("validation")
+
         prompts = []
         for record in records:
             full_prompt = ""
 
-            full_prompt += self._load_system_prompt(record.category or "general")
+            category = record.metadata.get("category") if record.metadata else None
+            full_prompt += self._load_system_prompt(category or "general")
             full_prompt += "\n"
 
-            few_shot = self._select_few_shot(record, few_shot_source, num_few_shot)
+            few_shot = self._select_few_shot(record, few_shot_source, self.num_few_shot)
             for example in few_shot:
                 example_dict = self._to_vendored_format(example)
                 full_prompt += format_cot_example(example_dict, including_answer=True)
@@ -83,7 +91,7 @@ class MMLUProAdapter(ParquetBasedAdapter):
                     messages=[
                         PromptMessage(role="user", content=full_prompt),
                     ],
-                    category=record.category,
+                    category=category,
                 ),
             )
 
@@ -104,18 +112,22 @@ class MMLUProAdapter(ParquetBasedAdapter):
         if not few_shot_source or num_few_shot == 0:
             return []
 
-        category = test_record.category
-        same_category = [r for r in few_shot_source if r.category == category]
+        category = test_record.metadata.get("category") if test_record.metadata else None
+        same_category = [
+            r for r in few_shot_source
+            if (r.metadata and r.metadata.get("category") == category)
+        ]
 
         return same_category[:num_few_shot]
 
     def _to_vendored_format(self, record: InternalEvalRecord) -> dict:
+        metadata = record.metadata or {}
         return {
             "question": record.question,
-            "options": record.options,
+            "options": metadata.get("options"),
             "answer": record.answer,
-            "cot_content": record.reasoning or "",
-            "category": record.category,
+            "cot_content": metadata.get("reasoning", ""),
+            "category": metadata.get("category"),
         }
 
     def prepare_for_benchmark(
@@ -134,7 +146,7 @@ class MMLUProAdapter(ParquetBasedAdapter):
                     "Predictions and ground truth must be in the same order with matching IDs.",
                 )
 
-            category = gt.category or "other"
+            category = (gt.metadata.get("category") if gt.metadata else None) or "other"
             if category not in by_category:
                 by_category[category] = []
 
