@@ -34,13 +34,40 @@ class EvalAdapter(ABC):
         ...
 
     @abstractmethod
+    def get_inference_split(self) -> str:
+        """Return the split name to use for inference (e.g., 'test', 'train')."""
+        ...
+
+    @abstractmethod
+    def get_few_shot_split(self) -> str | None:
+        """Return the split name to use for few-shot examples, or None if not applicable."""
+        ...
+
+    @abstractmethod
+    def get_benchmark_split(self) -> str:
+        """Return the split name to use for benchmarking."""
+        ...
+
+    @abstractmethod
+    def get_loading_config(self, limit: int | None) -> list[dict]:
+        """Return list of dataset loading configs.
+
+        Each config is a dict with:
+        - "split": str - the split name to load
+        - "limit": int | None - row limit to apply (None for no limit)
+        """
+        ...
+
+    @abstractmethod
     def format_prompts(
         self,
-        records: list[InternalEvalRecord],
-        few_shot_source: list[InternalEvalRecord] | None = None,
-        num_few_shot: int = 5,
+        datasets: dict[str, list[InternalEvalRecord]],
     ) -> list[EvalPrompt]:
-        """Generate inference prompts from internal records."""
+        """Generate inference prompts from loaded datasets.
+
+        Args:
+            datasets: Dict mapping split names to their loaded records
+        """
         ...
 
     @abstractmethod
